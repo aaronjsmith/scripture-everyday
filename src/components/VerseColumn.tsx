@@ -7,9 +7,49 @@ interface Props {
   verse: Verse
   cfmMode?: boolean
   cfmLesson?: CfmLesson | null
+  verseContext?: boolean
+  neighborPrev?: Verse | null
+  neighborNext?: Verse | null
+  onOpenVerse?: (verseId: string) => void
 }
 
-export function VerseColumn({ verse, cfmMode = false, cfmLesson = null }: Props) {
+function NeighborVerse({
+  verse,
+  position,
+  onOpen,
+}: {
+  verse: Verse
+  position: 'before' | 'after'
+  onOpen?: (verseId: string) => void
+}) {
+  const label = position === 'before' ? 'Before' : 'After'
+  const body = verse.text
+
+  return (
+    <button
+      type="button"
+      className={`context-verse context-${position}`}
+      onClick={() => onOpen?.(verse.id)}
+      title={`Open ${verse.reference}`}
+    >
+      <span className="context-meta">
+        <span className="context-label">{label}</span>
+        <span className="context-ref">{verse.reference}</span>
+      </span>
+      <span className="context-text">{body}</span>
+    </button>
+  )
+}
+
+export function VerseColumn({
+  verse,
+  cfmMode = false,
+  cfmLesson = null,
+  verseContext = false,
+  neighborPrev = null,
+  neighborNext = null,
+  onOpenVerse,
+}: Props) {
   const byuHref = buildByuCitationUrl(verse)
 
   return (
@@ -56,22 +96,44 @@ export function VerseColumn({ verse, cfmMode = false, cfmLesson = null }: Props)
       </header>
 
       <div className="verse-body">
-        {verse.volume === 'bible' ? (
-          <>
-            <article className="translation">
-              <h3>King James Version</h3>
-              <p className="verse-text">{verse.text}</p>
-            </article>
-            {verse.textWeb ? (
+        {verseContext && neighborPrev ? (
+          <NeighborVerse
+            verse={neighborPrev}
+            position="before"
+            onOpen={onOpenVerse}
+          />
+        ) : null}
+
+        <div className={verseContext ? 'verse-focus' : undefined}>
+          {verse.volume === 'bible' ? (
+            <>
               <article className="translation">
-                <h3>World English Bible</h3>
-                <p className="verse-text">{verse.textWeb}</p>
+                <h3>King James Version</h3>
+                <p className="verse-text">{verse.text}</p>
               </article>
-            ) : null}
-          </>
-        ) : (
-          <p className="verse-text">{verse.text}</p>
-        )}
+              {verse.textWeb ? (
+                <article className="translation">
+                  <h3>World English Bible</h3>
+                  <p className="verse-text">{verse.textWeb}</p>
+                </article>
+              ) : null}
+            </>
+          ) : (
+            <p className="verse-text">{verse.text}</p>
+          )}
+        </div>
+
+        {verseContext && neighborNext ? (
+          <NeighborVerse
+            verse={neighborNext}
+            position="after"
+            onOpen={onOpenVerse}
+          />
+        ) : null}
+
+        {verseContext && !neighborPrev && !neighborNext ? (
+          <p className="context-empty">No adjacent verses in this book.</p>
+        ) : null}
       </div>
     </section>
   )

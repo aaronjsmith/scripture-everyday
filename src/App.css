@@ -494,6 +494,68 @@ textarea {
   overflow: auto;
 }
 
+.verse-focus {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.context-verse {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.context-verse:hover {
+  border-color: var(--leaf);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.context-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.7rem;
+}
+
+.context-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.context-ref {
+  font-family: 'Fraunces', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--moss-deep);
+}
+
+.context-text {
+  font-family: 'Source Serif 4', serif;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.context-empty {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
 .translation h3 {
   margin: 0 0 0.45rem;
   font-size: 0.78rem;

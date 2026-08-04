@@ -93,6 +93,8 @@ function sanitizeState(raw: unknown): PersistedState {
         ? raw.rotationIndex
         : 0,
     cfmMode: raw.cfmMode === true,
+    verseOrder: raw.verseOrder === true,
+    verseContext: raw.verseContext === true,
     stats,
   }
 }

@@ -8,10 +8,14 @@ interface Props {
   notesCount: number
   nextVolumeLabel: string
   cfmMode: boolean
+  verseOrder: boolean
+  verseContext: boolean
   cfmLesson: CfmLesson | null
   cfmStatus: 'idle' | 'loading' | 'ready' | 'empty' | 'unavailable'
   cfmPoolStats: { total: number; marked: number }
   onToggleCfmMode: (enabled: boolean) => void
+  onToggleVerseOrder: (enabled: boolean) => void
+  onToggleVerseContext: (enabled: boolean) => void
   onNext: () => void
   onExportJson: () => void
   onExportMarkdown: () => void
@@ -26,10 +30,14 @@ export function StatsBar({
   notesCount,
   nextVolumeLabel,
   cfmMode,
+  verseOrder,
+  verseContext,
   cfmLesson,
   cfmStatus,
   cfmPoolStats,
   onToggleCfmMode,
+  onToggleVerseOrder,
+  onToggleVerseContext,
   onNext,
   onExportJson,
   onExportMarkdown,
@@ -48,6 +56,17 @@ export function StatsBar({
             ? `${formatCfmWeekLabel(cfmLesson)} · ${cfmPoolStats.marked}/${cfmPoolStats.total} in pool`
             : null
 
+  const modeLabel = cfmMode
+    ? 'Come, Follow Me'
+    : verseOrder
+      ? 'Verse order'
+      : nextVolumeLabel
+  const modeHint = cfmMode
+    ? 'Study mode'
+    : verseOrder
+      ? 'Sequential'
+      : 'Next volume'
+
   return (
     <aside className="stats-bar" aria-label="Progress and actions">
       <div className="stats-grid">
@@ -64,12 +83,8 @@ export function StatsBar({
           <span className="stat-label">Tagged verses</span>
         </div>
         <div>
-          <span className="stat-value muted">
-            {cfmMode ? 'Come, Follow Me' : nextVolumeLabel}
-          </span>
-          <span className="stat-label">
-            {cfmMode ? 'Study mode' : 'Next volume'}
-          </span>
+          <span className="stat-value muted">{modeLabel}</span>
+          <span className="stat-label">{modeHint}</span>
         </div>
       </div>
 
@@ -106,6 +121,40 @@ export function StatsBar({
             {cfmHint ? (
               <span className="cfm-toggle-hint">{cfmHint}</span>
             ) : null}
+          </span>
+        </label>
+
+        <label className={`cfm-toggle${verseOrder ? ' is-on' : ''}`}>
+          <input
+            type="checkbox"
+            checked={verseOrder}
+            onChange={(e) => onToggleVerseOrder(e.target.checked)}
+          />
+          <span className="cfm-toggle-ui" aria-hidden />
+          <span className="cfm-toggle-copy">
+            <span className="cfm-toggle-title">Verse order</span>
+            <span className="cfm-toggle-hint">
+              {verseOrder
+                ? 'Advance through unmarked verses in scripture order'
+                : 'Currently picking randomly by volume rotation'}
+            </span>
+          </span>
+        </label>
+
+        <label className={`cfm-toggle${verseContext ? ' is-on' : ''}`}>
+          <input
+            type="checkbox"
+            checked={verseContext}
+            onChange={(e) => onToggleVerseContext(e.target.checked)}
+          />
+          <span className="cfm-toggle-ui" aria-hidden />
+          <span className="cfm-toggle-copy">
+            <span className="cfm-toggle-title">Verse in context</span>
+            <span className="cfm-toggle-hint">
+              {verseContext
+                ? 'Showing the verse before and after'
+                : 'Show surrounding verses from the same book'}
+            </span>
           </span>
         </label>
 

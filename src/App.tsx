@@ -91,6 +91,10 @@ function App() {
           verse={app.current}
           cfmMode={app.state.cfmMode}
           cfmLesson={app.cfmLesson}
+          verseContext={app.state.verseContext}
+          neighborPrev={app.neighbors.prev}
+          neighborNext={app.neighbors.next}
+          onOpenVerse={app.openVerse}
         />
         <ReferencesColumn verse={app.current} />
         <NotesColumn
@@ -110,10 +114,14 @@ function App() {
         notesCount={notesCount}
         nextVolumeLabel={nextVolume}
         cfmMode={app.state.cfmMode}
+        verseOrder={app.state.verseOrder}
+        verseContext={app.state.verseContext}
         cfmLesson={app.cfmLesson}
         cfmStatus={app.cfmStatus}
         cfmPoolStats={app.cfmPoolStats}
         onToggleCfmMode={app.setCfmMode}
+        onToggleVerseOrder={app.setVerseOrder}
+        onToggleVerseContext={app.setVerseContext}
         onNext={app.advance}
         onExportJson={app.exportJson}
         onExportMarkdown={app.exportMarkdown}

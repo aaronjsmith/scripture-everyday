@@ -17,7 +17,7 @@ import {
   type CloudUser,
   type SyncStatus,
 } from '../lib/cloud'
-import { pickNextVerse, volumeProgress } from '../lib/rotation'
+import { findVerseNeighbors, pickNextVerse, volumeProgress } from '../lib/rotation'
 import {
   exportNotesJson,
   exportNotesMarkdown,
@@ -261,6 +261,7 @@ export function useScriptureApp() {
       verseList,
       new Set(fromState.markedVerseIds),
       fromState.rotationIndex,
+      { verseOrder: fromState.verseOrder },
     )
     if (!picked) return
     showVerse(picked.verse, picked.nextRotationIndex)
@@ -324,6 +325,7 @@ export function useScriptureApp() {
       pool,
       new Set(working.markedVerseIds),
       working.rotationIndex,
+      { verseOrder: working.verseOrder },
     )
     if (!picked) {
       setState(working)
@@ -353,6 +355,19 @@ export function useScriptureApp() {
     }
 
     pickAndShow(next, poolForMode(enabled))
+  }
+
+  function setVerseOrder(enabled: boolean) {
+    const next: PersistedState = {
+      ...stateRef.current,
+      verseOrder: enabled,
+    }
+    setState(next)
+    pickAndShow(next, poolForMode(next.cfmMode))
+  }
+
+  function setVerseContext(enabled: boolean) {
+    setState((prev) => ({ ...prev, verseContext: enabled }))
   }
 
   function openVerse(verseId: string) {
@@ -436,6 +451,13 @@ export function useScriptureApp() {
     return { total: cfmPool.length, marked }
   }, [cfmPool, markedSet])
 
+  const neighbors = useMemo(() => {
+    if (!current || !state.verseContext || !verses.length) {
+      return { prev: null, next: null }
+    }
+    return findVerseNeighbors(verses, current)
+  }, [current, state.verseContext, verses])
+
   return {
     verses,
     counts,
@@ -463,7 +485,10 @@ export function useScriptureApp() {
     cfmLesson,
     cfmStatus,
     cfmPoolStats,
+    neighbors,
     setCfmMode,
+    setVerseOrder,
+    setVerseContext,
     activePoolSize: activePool.length,
     exportJson: () => exportNotesJson(state.notes),
     exportMarkdown: () => exportNotesMarkdown(state.notes),
