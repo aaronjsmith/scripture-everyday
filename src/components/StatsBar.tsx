@@ -10,6 +10,7 @@ interface Props {
   onExportJson: () => void
   onExportMarkdown: () => void
   onReset: () => void
+  onViewMarked: () => void
 }
 
 export function StatsBar({
@@ -21,6 +22,7 @@ export function StatsBar({
   onExportJson,
   onExportMarkdown,
   onReset,
+  onViewMarked,
 }: Props) {
   return (
     <aside className="stats-bar" aria-label="Progress and actions">
@@ -66,6 +68,9 @@ export function StatsBar({
       <div className="toolbar">
         <button type="button" className="btn primary" onClick={onNext}>
           Next verse
+        </button>
+        <button type="button" className="btn" onClick={onViewMarked}>
+          View marked
         </button>
         <button type="button" className="btn" onClick={onExportMarkdown}>
           Download Markdown

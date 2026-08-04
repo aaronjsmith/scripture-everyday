@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  fetchMe,
+  fetchRemoteProgress,
+  logoutCloud,
+  mergeProgress,
+  pushProgress,
+  type CloudUser,
+  type SyncStatus,
+} from '../lib/cloud'
 import { pickNextVerse, volumeProgress } from '../lib/rotation'
 import {
   exportNotesJson,
@@ -61,12 +70,20 @@ export function useScriptureApp() {
   const [noteDraft, setNoteDraft] = useState('')
   const [tagDraft, setTagDraft] = useState<string[]>([])
   const [saveFlash, setSaveFlash] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  const [cloudUser, setCloudUser] = useState<CloudUser | null>(null)
+  const [cloudConfigured, setCloudConfigured] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('local-only')
+  const [syncError, setSyncError] = useState<string | null>(null)
 
   const currentRef = useRef<Verse | null>(null)
   const noteDraftRef = useRef(noteDraft)
   const tagDraftRef = useRef(tagDraft)
   const stateRef = useRef(state)
   const startedRef = useRef(false)
+  const cloudReadyRef = useRef(false)
+  const skipNextPushRef = useRef(false)
 
   currentRef.current = current
   noteDraftRef.current = noteDraft
@@ -102,8 +119,71 @@ export function useScriptureApp() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const me = await fetchMe()
+        if (cancelled) return
+        setCloudConfigured(me.configured)
+        setCloudUser(me.user)
+
+        if (!me.user) {
+          setSyncStatus('local-only')
+          cloudReadyRef.current = true
+          return
+        }
+
+        setSyncStatus('syncing')
+        const remote = await fetchRemoteProgress()
+        if (cancelled) return
+        const merged = mergeProgress(stateRef.current, remote)
+        skipNextPushRef.current = true
+        setState(merged)
+        saveState(merged)
+        await pushProgress(merged)
+        if (cancelled) return
+        setSyncStatus('synced')
+        setSyncError(null)
+      } catch (err) {
+        if (cancelled) return
+        setSyncStatus('error')
+        setSyncError(err instanceof Error ? err.message : 'Cloud sync failed')
+      } finally {
+        cloudReadyRef.current = true
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     saveState(state)
   }, [state])
+
+  useEffect(() => {
+    if (!cloudUser || !cloudReadyRef.current) return
+    if (skipNextPushRef.current) {
+      skipNextPushRef.current = false
+      return
+    }
+
+    setSyncStatus('syncing')
+    const handle = window.setTimeout(() => {
+      void (async () => {
+        try {
+          await pushProgress(state)
+          setSyncStatus('synced')
+          setSyncError(null)
+        } catch (err) {
+          setSyncStatus('error')
+          setSyncError(err instanceof Error ? err.message : 'Cloud sync failed')
+        }
+      })()
+    }, 700)
+
+    return () => window.clearTimeout(handle)
+  }, [state, cloudUser])
 
   function showVerse(verse: Verse, nextRotationIndex: number) {
     const existing = stateRef.current.notes[verse.id]
@@ -179,6 +259,15 @@ export function useScriptureApp() {
     })
   }
 
+  function openVerse(verseId: string) {
+    const verse = verses.find((v) => v.id === verseId)
+    if (!verse) return
+    const existing = stateRef.current.notes[verse.id]
+    setCurrent(verse)
+    setNoteDraft(existing?.text ?? '')
+    setTagDraft(existing?.tags ?? [])
+  }
+
   function saveNote() {
     const verse = currentRef.current
     if (!verse) return
@@ -222,6 +311,17 @@ export function useScriptureApp() {
     pickAndShow(next, verses)
   }
 
+  async function disconnectCloud() {
+    try {
+      await logoutCloud()
+    } catch {
+      // still clear local auth UI
+    }
+    setCloudUser(null)
+    setSyncStatus('local-only')
+    setSyncError(null)
+  }
+
   const progress = useMemo(() => {
     const map = {} as Record<VolumeId, { marked: number; total: number }>
     for (const volume of VOLUME_ORDER) {
@@ -246,6 +346,14 @@ export function useScriptureApp() {
     advance,
     saveNote,
     resetProgress,
+    openVerse,
+    historyOpen,
+    setHistoryOpen,
+    cloudUser,
+    cloudConfigured,
+    syncStatus,
+    syncError,
+    disconnectCloud,
     exportJson: () => exportNotesJson(state.notes),
     exportMarkdown: () => exportNotesMarkdown(state.notes),
   }

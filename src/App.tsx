@@ -1,7 +1,9 @@
+import { AccountBar } from './components/AccountBar'
 import { VerseColumn } from './components/VerseColumn'
 import { ReferencesColumn } from './components/ReferencesColumn'
 import { NotesColumn } from './components/NotesColumn'
 import { StatsBar } from './components/StatsBar'
+import { MarkedHistory } from './components/MarkedHistory'
 import { useScriptureApp } from './hooks/useScriptureApp'
 import { VOLUME_LABELS, VOLUME_ORDER } from './lib/types'
 import './App.css'
@@ -54,12 +56,23 @@ function App() {
             impressions.
           </p>
         </div>
-        {app.counts ? (
-          <p className="corpus-meta">
-            {app.counts.total.toLocaleString()} verses · KJV + WEB · BoM · PoGP
-            · D&amp;C
-          </p>
-        ) : null}
+        <div className="topbar-aside">
+          {app.counts ? (
+            <p className="corpus-meta">
+              {app.counts.total.toLocaleString()} verses · KJV + WEB · BoM · PoGP
+              · D&amp;C
+            </p>
+          ) : null}
+          <AccountBar
+            user={app.cloudUser}
+            configured={app.cloudConfigured}
+            syncStatus={app.syncStatus}
+            syncError={app.syncError}
+            onLogout={() => {
+              void app.disconnectCloud()
+            }}
+          />
+        </div>
       </header>
 
       <main className="columns">
@@ -85,6 +98,16 @@ function App() {
         onExportJson={app.exportJson}
         onExportMarkdown={app.exportMarkdown}
         onReset={app.resetProgress}
+        onViewMarked={() => app.setHistoryOpen(true)}
+      />
+
+      <MarkedHistory
+        open={app.historyOpen}
+        onClose={() => app.setHistoryOpen(false)}
+        markedVerseIds={app.state.markedVerseIds}
+        verses={app.verses}
+        notes={app.state.notes}
+        onOpenVerse={app.openVerse}
       />
     </div>
   )

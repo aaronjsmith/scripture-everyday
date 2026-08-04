@@ -1,9 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "scriptday",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-08-04",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PROGRESS",
+      "id": "2e5709166df241c39d28eb86bd963b42",
+      "preview_id": "2e5709166df241c39d28eb86bd963b42"
+    }
+  ]
 }
