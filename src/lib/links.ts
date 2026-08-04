@@ -188,6 +188,33 @@ export function buildFollowHimSearchUrl(query: string): string {
   return `https://followhim.co/?${params.toString()}`
 }
 
+/** Scripture Central library search (supports scripture references). */
+export function buildScriptureCentralSearchUrl(query: string): string {
+  const params = new URLSearchParams({ q: query })
+  return `https://scripturecentral.org/search?${params.toString()}`
+}
+
+/**
+ * Church History Matters (Scott Woodward & Casey Griffiths) lives on
+ * Doctrine and Covenants Central; WordPress `?s=` searches podcast episodes
+ * and related study pages.
+ */
+export function buildChurchHistoryMattersSearchUrl(query: string): string {
+  const params = new URLSearchParams({ s: query })
+  return `https://doctrineandcovenantscentral.org/?${params.toString()}`
+}
+
+/**
+ * MormonR has Algolia autocomplete but no durable on-site search results URL.
+ * Google site search is the shareable way to find Hard Questions / sources by reference.
+ */
+export function buildMormonrSearchUrl(query: string): string {
+  const params = new URLSearchParams({
+    q: `site:mormonr.org ${query}`,
+  })
+  return `https://www.google.com/search?${params.toString()}`
+}
+
 /** 1/2 Samuel, Kings, and Chronicles share one BibleProject guide each. */
 const BIBLE_PROJECT_COMBINED: Record<string, string> = {
   '1 samuel': 'books-of-samuel',
@@ -273,6 +300,24 @@ export function buildReferenceLinks(verse: Verse): ReferenceLink[] {
     label: 'followHIM podcast',
     href: buildFollowHimSearchUrl(refQuery),
     description: `Hank Smith & John Bytheway episodes mentioning ${verse.reference}`,
+  })
+
+  links.push({
+    label: 'Scripture Central',
+    href: buildScriptureCentralSearchUrl(refQuery),
+    description: `KnoWhys, evidences, and CFM study resources for ${verse.reference}`,
+  })
+
+  links.push({
+    label: 'Church History Matters',
+    href: buildChurchHistoryMattersSearchUrl(refQuery),
+    description: `Scott Woodward & Casey Griffiths podcast and study pages mentioning ${verse.reference}`,
+  })
+
+  links.push({
+    label: 'MormonR',
+    href: buildMormonrSearchUrl(refQuery),
+    description: `Hard Questions and primary sources mentioning ${verse.reference}`,
   })
 
   const cfmHome = CFM_MANUAL_HOME[verse.volume]

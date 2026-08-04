@@ -278,6 +278,16 @@ export function useScriptureApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verses, cfmPoolReady])
 
+  // If CFM mode was turned on before the pool finished loading, enter the pool once ready.
+  useEffect(() => {
+    if (!state.cfmMode || !cfmPoolReady || !cfmPool.length) return
+    if (!startedRef.current) return
+    const cur = currentRef.current
+    if (cur && cfmPool.some((v) => v.id === cur.id)) return
+    pickAndShow(stateRef.current, cfmPool)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.cfmMode, cfmPoolReady, cfmPool])
+
   function advance() {
     const verse = currentRef.current
     let working = stateRef.current

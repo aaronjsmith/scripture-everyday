@@ -79,7 +79,7 @@ Add `scriptday.ensign.quest` under the project’s **Custom domains** tab.
 
 - Progress stays in the browser when signed out; connecting Google or Microsoft merges and syncs to Cloudflare KV.
 - **View marked** lists every marked verse with notes/tags and reopens one on click.
-- Reference links include Gospel Library, Come, Follow Me + FAIR + followHIM weekly matches (when indexed), Church.org / FAIR / followHIM searches, the BYU Scripture Citation Index, and for Bible verses Bible Project book guides plus Bible Gateway (KJV/WEB).
+- Reference links include Gospel Library, Come, Follow Me + FAIR + followHIM weekly matches (when indexed), Church.org / FAIR / followHIM / Scripture Central / Church History Matters / MormonR searches, the BYU Scripture Citation Index, and for Bible verses Bible Project book guides plus Bible Gateway (KJV/WEB).
 - Rebuild CFM lesson index with `npm run build:cfm` (OT 2026 via Open Scripture API + FAIR weekly pages + followhim.co episodes).
 - First load downloads the verse corpus (~18MB); Cloudflare caches it via `_headers`.
 - Rebuild verse data with `npm run build:scriptures` when sources change.
