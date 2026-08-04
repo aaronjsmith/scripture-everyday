@@ -12,21 +12,24 @@ npm run build:scriptures
 npm run dev
 ```
 
-## Deploy (Cloudflare Pages)
+## Deploy (Cloudflare)
 
-Static Vite app — no Wrangler required. Connect the repo in **Workers & Pages → Create → Pages → Connect to Git**, then use:
+Static assets Worker configured in `wrangler.jsonc` (`dist/` + SPA fallback). Git-connected builds should use:
 
 | Setting | Value |
 | --- | --- |
-| Framework preset | Vite |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
+| Output directory | `dist` |
 
-Leave **Deploy command** empty (Pages publishes `dist` after the build).
+Locally:
 
-Add the custom domain `scriptday.ensign.quest` under the project’s **Custom domains** tab.
+```bash
+npx wrangler login
+npm run deploy
+```
 
-If an older setup still runs `npx wrangler deploy`, clear that deploy command and remove any `wrangler.toml` expectation — this repo is assets-only.
+Add `scriptday.ensign.quest` under **Custom domains** in the Cloudflare project.
 
 ## Notes
 
