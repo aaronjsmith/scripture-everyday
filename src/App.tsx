@@ -48,7 +48,7 @@ function App() {
 
       <header className="topbar">
         <div className="brand-block">
-          <p className="brand">Scripture Everyday</p>
+          <p className="brand">Scriptday</p>
           <p className="tagline">
             A quiet rotation through the standard works — with room for
             impressions.

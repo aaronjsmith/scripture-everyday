@@ -157,10 +157,35 @@ textarea {
   color: var(--moss-deep);
 }
 
+.verse-reference-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.verse-reference-link:hover {
+  color: var(--moss);
+  border-bottom-color: var(--moss);
+}
+
 .panel-sub {
   margin: 0.35rem 0 0;
   color: var(--ink-soft);
   font-size: 0.92rem;
+}
+
+.panel-sub a {
+  color: var(--moss);
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.panel-sub a:hover {
+  color: var(--moss-deep);
+  border-bottom-color: var(--moss);
 }
 
 .verse-body {

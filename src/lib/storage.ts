@@ -1,7 +1,8 @@
 import type { PersistedState, VerseNote, VolumeId } from './types'
 import { defaultPersistedState, emptyStats } from './types'
 
-const STORAGE_KEY = 'scripture-everyday:v1'
+const STORAGE_KEY = 'scriptday:v1'
+const LEGACY_STORAGE_KEY = 'scripture-everyday:v1'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -98,8 +99,14 @@ function sanitizeState(raw: unknown): PersistedState {
 export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return defaultPersistedState()
-    return sanitizeState(JSON.parse(raw) as unknown)
+    if (raw) return sanitizeState(JSON.parse(raw) as unknown)
+
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (!legacy) return defaultPersistedState()
+
+    const state = sanitizeState(JSON.parse(legacy) as unknown)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    return state
   } catch {
     return defaultPersistedState()
   }
@@ -125,7 +132,7 @@ export function exportNotesJson(notes: Record<string, VerseNote>): void {
   )
   const stamp = new Date().toISOString().slice(0, 10)
   downloadBlob(
-    `scripture-everyday-notes-${stamp}.json`,
+    `scriptday-notes-${stamp}.json`,
     JSON.stringify({ exportedAt: new Date().toISOString(), notes: list }, null, 2),
     'application/json',
   )
@@ -137,7 +144,7 @@ export function exportNotesMarkdown(notes: Record<string, VerseNote>): void {
     .sort((a, b) => a.reference.localeCompare(b.reference))
 
   const lines = [
-    '# Scripture Everyday Notes',
+    '# Scriptday Notes',
     '',
     `Exported ${new Date().toLocaleString()}`,
     '',
@@ -155,7 +162,7 @@ export function exportNotesMarkdown(notes: Record<string, VerseNote>): void {
 
   const stamp = new Date().toISOString().slice(0, 10)
   downloadBlob(
-    `scripture-everyday-notes-${stamp}.md`,
+    `scriptday-notes-${stamp}.md`,
     lines.join('\n'),
     'text/markdown',
   )

@@ -1,28 +1,8 @@
-# Scripture Everyday
+# Scriptday
 
-A quiet, local-first scripture study app that rotates through the standard works one verse at a time.
+Daily scripture study at [scriptday.ensign.quest](https://scriptday.ensign.quest).
 
-## Features
-
-- **Volumes:** Book of Mormon, Holy Bible (KJV + World English Bible), Pearl of Great Price, Doctrine and Covenants
-- **Round-robin rotation:** BoM → Bible → PoGP → D&C, with a random unread verse in each volume
-- **Three columns:** verse text, study reference links, impressions notebook
-- **Tags:** LDS gospel-topic style subjects
-- **Local storage:** progress, notes, and stats stay in your browser
-- **Export:** download notes as Markdown or JSON
-
-## Scripture sources
-
-Public-domain texts:
-
-- LDS volumes via [bcbooks/scriptures-json](https://github.com/bcbooks/scriptures-json)
-- Bible KJV + WEB via [midvash/bible-data](https://github.com/midvash/bible-data)
-
-Rebuild verse data anytime:
-
-```bash
-npm run build:scriptures
-```
+Rotates through the standard works one verse at a time — Book of Mormon, Holy Bible (KJV + WEB), Pearl of Great Price, and Doctrine and Covenants — with study links, impressions, tags, and local-only progress.
 
 ## Develop
 
@@ -32,36 +12,34 @@ npm run build:scriptures
 npm run dev
 ```
 
-## Deploy on Cloudflare Pages
+## Deploy (Cloudflare Pages)
 
-### Option A — GitHub integration (recommended)
-
-1. Push this repo to GitHub (already set up if you cloned from the project remote).
-2. In the [Cloudflare dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
-3. Select the `scripture-everyday` repository.
-4. Use these build settings:
-
-| Setting | Value |
-| --- | --- |
-| Framework preset | Vite |
-| Build command | `npm run build` |
-| Build output directory | `dist` |
-| Node version | `20` (set env var `NODE_VERSION=20`) |
-
-5. Save and deploy. Later pushes to `main` redeploy automatically.
-
-### Option B — Wrangler CLI
+Minimal setup: `wrangler.toml` points at `dist` and names the project `scriptday`.
 
 ```bash
-npm install
-npx wrangler login
+npm run cf:login   # once
 npm run deploy
 ```
 
-That builds the site and uploads `dist/` to the Cloudflare Pages project named `scripture-everyday`.
+Then in the Cloudflare dashboard: **Workers & Pages → scriptday → Custom domains → Add** `scriptday.ensign.quest`.
+
+If `ensign.quest` is already on the same Cloudflare account, the DNS record is created for you.
+
+### Optional: Git-connected Pages
+
+Connect this repo in the dashboard. Build settings:
+
+| Setting | Value |
+| --- | --- |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Root directory | `/` |
+
+Set `NODE_VERSION=20` if the dashboard asks for a Node version.
 
 ## Notes
 
-- Marked verses are remembered so you do not repeat until a volume is exhausted (then it continues randomly).
-- Reference links include Gospel Library, BYU Scripture Citation Index, and Bible study sites for Bible verses.
+- Progress and notes stay in the browser (`localStorage`).
+- Reference links include Gospel Library and the BYU Scripture Citation Index.
 - First load downloads the verse corpus (~18MB); Cloudflare caches it via `_headers`.
+- Rebuild verse data with `npm run build:scriptures` when sources change.

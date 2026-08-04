@@ -1,3 +1,4 @@
+import { buildByuCitationUrl } from '../lib/links'
 import type { Verse } from '../lib/types'
 import { VOLUME_LABELS } from '../lib/types'
 
@@ -6,11 +7,29 @@ interface Props {
 }
 
 export function VerseColumn({ verse }: Props) {
+  const byuHref = buildByuCitationUrl(verse)
+
   return (
     <section className="panel verse-panel" aria-labelledby="verse-heading">
       <header className="panel-header">
         <p className="eyebrow">{VOLUME_LABELS[verse.volume]}</p>
-        <h2 id="verse-heading">{verse.reference}</h2>
+        <h2 id="verse-heading">
+          <a
+            className="verse-reference-link"
+            href={byuHref}
+            target="_blank"
+            rel="noreferrer"
+            title={`Open ${verse.reference} in the BYU Scripture Citation Index`}
+          >
+            {verse.reference}
+          </a>
+        </h2>
+        <p className="panel-sub">
+          Citations via{' '}
+          <a href={byuHref} target="_blank" rel="noreferrer">
+            scriptures.byu.edu
+          </a>
+        </p>
       </header>
 
       <div className="verse-body">

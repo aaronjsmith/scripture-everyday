@@ -1,5 +1,5 @@
 {
-  "name": "scripture-everyday",
+  "name": "scriptday",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,7 @@
     "build:scriptures": "node scripts/build-scriptures.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name=scripture-everyday",
+    "deploy": "npm run build && wrangler pages deploy",
     "cf:login": "wrangler login"
   },
   "engines": {
