@@ -102,6 +102,7 @@ export function mergeProgress(
     markedVerseIds,
     notes,
     rotationIndex: Math.max(local.rotationIndex, remote.rotationIndex),
+    cfmMode: local.cfmMode || remote.cfmMode === true,
     stats: recomputeStats(markedVerseIds, notes, byVolume, lastShownAt),
   }
 }

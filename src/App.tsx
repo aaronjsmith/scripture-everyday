@@ -55,6 +55,17 @@ function App() {
             A quiet rotation through the standard works — with room for
             impressions.
           </p>
+          <p className="brand-home">
+            From{' '}
+            <a
+              className="brand-home-link"
+              href="https://ensign.quest"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ensign.quest
+            </a>
+          </p>
         </div>
         <div className="topbar-aside">
           {app.counts ? (
@@ -76,7 +87,11 @@ function App() {
       </header>
 
       <main className="columns">
-        <VerseColumn verse={app.current} />
+        <VerseColumn
+          verse={app.current}
+          cfmMode={app.state.cfmMode}
+          cfmLesson={app.cfmLesson}
+        />
         <ReferencesColumn verse={app.current} />
         <NotesColumn
           reference={app.current.reference}
@@ -94,12 +109,37 @@ function App() {
         progress={app.progress}
         notesCount={notesCount}
         nextVolumeLabel={nextVolume}
+        cfmMode={app.state.cfmMode}
+        cfmLesson={app.cfmLesson}
+        cfmStatus={app.cfmStatus}
+        cfmPoolStats={app.cfmPoolStats}
+        onToggleCfmMode={app.setCfmMode}
         onNext={app.advance}
         onExportJson={app.exportJson}
         onExportMarkdown={app.exportMarkdown}
+        onExportRtf={app.exportRtf}
         onReset={app.resetProgress}
         onViewMarked={() => app.setHistoryOpen(true)}
       />
+
+      <footer className="site-footer">
+        <p className="footer-home">
+          A project on{' '}
+          <a href="https://ensign.quest" target="_blank" rel="noopener noreferrer">
+            ensign.quest
+          </a>
+        </p>
+        <p className="disclaimer">
+          Unofficial scripture study tool for personal LDS-centric study. Not
+          affiliated with, endorsed by, or connected to Ensign College or The
+          Church of Jesus Christ of Latter-day Saints. Made for personal study.
+          Part of{' '}
+          <a href="https://ensign.quest" target="_blank" rel="noopener noreferrer">
+            ensign.quest
+          </a>
+          .
+        </p>
+      </footer>
 
       <MarkedHistory
         open={app.historyOpen}

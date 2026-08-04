@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  buildCfmVersePool,
+  findCurrentLesson,
+  loadCfmCurrentLesson,
+  loadCfmLessons,
+  parseCitationsFromText,
+  type CfmLesson,
+  type CfmVerseRef,
+} from '../lib/cfm'
+import {
   fetchMe,
   fetchRemoteProgress,
   logoutCloud,
@@ -12,6 +21,7 @@ import { pickNextVerse, volumeProgress } from '../lib/rotation'
 import {
   exportNotesJson,
   exportNotesMarkdown,
+  exportNotesRtf,
   loadState,
   saveState,
 } from '../lib/storage'
@@ -72,6 +82,13 @@ export function useScriptureApp() {
   const [saveFlash, setSaveFlash] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
 
+  const [cfmLesson, setCfmLesson] = useState<CfmLesson | null>(null)
+  const [cfmPool, setCfmPool] = useState<Verse[]>([])
+  const [cfmPoolReady, setCfmPoolReady] = useState(false)
+  const [cfmStatus, setCfmStatus] = useState<
+    'idle' | 'loading' | 'ready' | 'empty' | 'unavailable'
+  >('idle')
+
   const [cloudUser, setCloudUser] = useState<CloudUser | null>(null)
   const [cloudConfigured, setCloudConfigured] = useState(false)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('local-only')
@@ -81,6 +98,8 @@ export function useScriptureApp() {
   const noteDraftRef = useRef(noteDraft)
   const tagDraftRef = useRef(tagDraft)
   const stateRef = useRef(state)
+  const versesRef = useRef(verses)
+  const cfmPoolRef = useRef(cfmPool)
   const startedRef = useRef(false)
   const cloudReadyRef = useRef(false)
   const skipNextPushRef = useRef(false)
@@ -89,11 +108,15 @@ export function useScriptureApp() {
   noteDraftRef.current = noteDraft
   tagDraftRef.current = tagDraft
   stateRef.current = state
+  versesRef.current = verses
+  cfmPoolRef.current = cfmPool
 
   const markedSet = useMemo(
     () => new Set(state.markedVerseIds),
     [state.markedVerseIds],
   )
+
+  const activePool = state.cfmMode && cfmPool.length > 0 ? cfmPool : verses
 
   useEffect(() => {
     let cancelled = false
@@ -117,6 +140,43 @@ export function useScriptureApp() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!verses.length) return
+    let cancelled = false
+    setCfmStatus('loading')
+
+    ;(async () => {
+      const lessons = await loadCfmLessons()
+      if (cancelled) return
+
+      const lesson = findCurrentLesson(lessons)
+      if (!lesson) {
+        setCfmLesson(null)
+        setCfmPool([])
+        setCfmPoolReady(true)
+        setCfmStatus(lessons.length ? 'unavailable' : 'unavailable')
+        return
+      }
+
+      let connected: CfmVerseRef[] = []
+      const currentPayload = await loadCfmCurrentLesson()
+      if (cancelled) return
+      if (currentPayload?.contentText) {
+        connected = parseCitationsFromText(currentPayload.contentText)
+      }
+
+      const { pool } = buildCfmVersePool(verses, lesson, connected)
+      setCfmLesson(lesson)
+      setCfmPool(pool)
+      setCfmPoolReady(true)
+      setCfmStatus(pool.length ? 'ready' : 'empty')
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [verses])
 
   useEffect(() => {
     let cancelled = false
@@ -203,13 +263,20 @@ export function useScriptureApp() {
     showVerse(picked.verse, picked.nextRotationIndex)
   }
 
+  function poolForMode(cfmMode: boolean): Verse[] {
+    if (cfmMode && cfmPoolRef.current.length > 0) return cfmPoolRef.current
+    return versesRef.current
+  }
+
   useEffect(() => {
     if (!verses.length || startedRef.current) return
+    // Wait for CFM pool resolution when starting in CFM mode
+    if (stateRef.current.cfmMode && !cfmPoolReady) return
     startedRef.current = true
-    pickAndShow(stateRef.current, verses)
-    // intentionally once after verses load
+    pickAndShow(stateRef.current, poolForMode(stateRef.current.cfmMode))
+    // intentionally once after verses (+ optional CFM pool) load
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [verses])
+  }, [verses, cfmPoolReady])
 
   function advance() {
     const verse = currentRef.current
@@ -239,8 +306,9 @@ export function useScriptureApp() {
       }
     }
 
+    const pool = poolForMode(working.cfmMode)
     const picked = pickNextVerse(
-      verses,
+      pool,
       new Set(working.markedVerseIds),
       working.rotationIndex,
     )
@@ -257,6 +325,21 @@ export function useScriptureApp() {
       ...working,
       rotationIndex: picked.nextRotationIndex,
     })
+  }
+
+  function setCfmMode(enabled: boolean) {
+    const next: PersistedState = {
+      ...stateRef.current,
+      cfmMode: enabled,
+    }
+    setState(next)
+
+    if (enabled && cfmPoolRef.current.length === 0) {
+      // Keep current verse; pool unavailable / empty
+      return
+    }
+
+    pickAndShow(next, poolForMode(enabled))
   }
 
   function openVerse(verseId: string) {
@@ -308,7 +391,7 @@ export function useScriptureApp() {
       },
     }
     setState(next)
-    pickAndShow(next, verses)
+    pickAndShow(next, poolForMode(next.cfmMode))
   }
 
   async function disconnectCloud() {
@@ -324,11 +407,21 @@ export function useScriptureApp() {
 
   const progress = useMemo(() => {
     const map = {} as Record<VolumeId, { marked: number; total: number }>
+    const progressVerses = state.cfmMode && cfmPool.length > 0 ? cfmPool : verses
     for (const volume of VOLUME_ORDER) {
-      map[volume] = volumeProgress(verses, markedSet, volume)
+      map[volume] = volumeProgress(progressVerses, markedSet, volume)
     }
     return map
-  }, [verses, markedSet])
+  }, [verses, cfmPool, state.cfmMode, markedSet])
+
+  const cfmPoolStats = useMemo(() => {
+    if (!cfmPool.length) return { total: 0, marked: 0 }
+    let marked = 0
+    for (const v of cfmPool) {
+      if (markedSet.has(v.id)) marked += 1
+    }
+    return { total: cfmPool.length, marked }
+  }, [cfmPool, markedSet])
 
   return {
     verses,
@@ -354,7 +447,13 @@ export function useScriptureApp() {
     syncStatus,
     syncError,
     disconnectCloud,
+    cfmLesson,
+    cfmStatus,
+    cfmPoolStats,
+    setCfmMode,
+    activePoolSize: activePool.length,
     exportJson: () => exportNotesJson(state.notes),
     exportMarkdown: () => exportNotesMarkdown(state.notes),
+    exportRtf: () => exportNotesRtf(state.notes),
   }
 }

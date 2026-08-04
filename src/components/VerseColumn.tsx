@@ -1,12 +1,15 @@
 import { buildByuCitationUrl } from '../lib/links'
+import type { CfmLesson } from '../lib/cfm'
 import type { Verse } from '../lib/types'
 import { VOLUME_LABELS } from '../lib/types'
 
 interface Props {
   verse: Verse
+  cfmMode?: boolean
+  cfmLesson?: CfmLesson | null
 }
 
-export function VerseColumn({ verse }: Props) {
+export function VerseColumn({ verse, cfmMode = false, cfmLesson = null }: Props) {
   const byuHref = buildByuCitationUrl(verse)
 
   return (
@@ -24,12 +27,30 @@ export function VerseColumn({ verse }: Props) {
             {verse.reference}
           </a>
         </h2>
-        <p className="panel-sub">
-          Citations via{' '}
-          <a href={byuHref} target="_blank" rel="noreferrer">
-            scriptures.byu.edu
-          </a>
-        </p>
+        {cfmMode && cfmLesson ? (
+          <p className="cfm-lesson-banner">
+            <span className="cfm-lesson-label">This week</span>
+            <span className="cfm-lesson-title">{cfmLesson.title}</span>
+            <span className="cfm-lesson-dates">{cfmLesson.dateDisplay}</span>
+            {cfmLesson.href ? (
+              <a
+                className="cfm-lesson-link"
+                href={cfmLesson.href}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open lesson
+              </a>
+            ) : null}
+          </p>
+        ) : (
+          <p className="panel-sub">
+            Citations via{' '}
+            <a href={byuHref} target="_blank" rel="noreferrer">
+              scriptures.byu.edu
+            </a>
+          </p>
+        )}
       </header>
 
       <div className="verse-body">

@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:scriptures": "node scripts/build-scriptures.mjs",
+    "build:cfm": "node scripts/build-cfm-index.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy",

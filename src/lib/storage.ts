@@ -92,6 +92,7 @@ function sanitizeState(raw: unknown): PersistedState {
       typeof raw.rotationIndex === 'number' && raw.rotationIndex >= 0
         ? raw.rotationIndex
         : 0,
+    cfmMode: raw.cfmMode === true,
     stats,
   }
 }
@@ -165,5 +166,66 @@ export function exportNotesMarkdown(notes: Record<string, VerseNote>): void {
     `scriptday-notes-${stamp}.md`,
     lines.join('\n'),
     'text/markdown',
+  )
+}
+
+/** Escape plain text for RTF (opens cleanly in Microsoft Word). */
+function escapeRtf(text: string): string {
+  let out = ''
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!
+    if (ch === '\\') out += '\\\\'
+    else if (ch === '{') out += '\\{'
+    else if (ch === '}') out += '\\}'
+    else if (ch === '\n') out += '\\par\n'
+    else if (ch === '\r') continue
+    else if (ch === '\t') out += '\\tab '
+    else {
+      const code = text.charCodeAt(i)
+      if (code < 0x20) continue
+      if (code < 0x80) out += ch
+      else {
+        // RTF \u uses signed 16-bit UTF-16 code units
+        const signed = code > 0x7fff ? code - 0x10000 : code
+        out += `\\u${signed}?`
+      }
+    }
+  }
+  return out
+}
+
+export function exportNotesRtf(notes: Record<string, VerseNote>): void {
+  const list = Object.values(notes)
+    .filter((n) => n.text.trim() || n.tags.length)
+    .sort((a, b) => a.reference.localeCompare(b.reference))
+
+  const parts: string[] = [
+    '{\\rtf1\\ansi\\deff0',
+    '{\\fonttbl{\\f0 Times New Roman;}}',
+    '\\f0\\fs24',
+    `{\\b ${escapeRtf('Scriptday Notes')}}\\par`,
+    '\\par',
+    `${escapeRtf(`Exported ${new Date().toLocaleString()}`)}\\par`,
+    '\\par',
+  ]
+
+  for (const note of list) {
+    parts.push(`{\\b\\fs28 ${escapeRtf(note.reference)}}\\par`)
+    if (note.tags.length) {
+      parts.push(`${escapeRtf(`Tags: ${note.tags.join(', ')}`)}\\par`)
+      parts.push('\\par')
+    }
+    const body = note.text.trim() || 'No impression written'
+    parts.push(`${escapeRtf(body)}\\par`)
+    parts.push('\\par')
+  }
+
+  parts.push('}')
+
+  const stamp = new Date().toISOString().slice(0, 10)
+  downloadBlob(
+    `scriptday-notes-${stamp}.rtf`,
+    parts.join('\n'),
+    'application/rtf',
   )
 }

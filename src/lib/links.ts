@@ -141,9 +141,89 @@ export function buildByuCitationUrl(verse: Verse): string {
   return `https://scriptures.byu.edu/#${encoded}:${encoded}:c${encoded}`
 }
 
+/** Manual homepage for the volume’s most recent Come, Follow Me year. */
+const CFM_MANUAL_HOME: Partial<
+  Record<Verse['volume'], { label: string; href: string }>
+> = {
+  bible: {
+    label: 'Come, Follow Me (Old Testament 2026)',
+    href: 'https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-old-testament-2026?lang=eng',
+  },
+  pgp: {
+    label: 'Come, Follow Me (Old Testament 2026)',
+    href: 'https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-old-testament-2026?lang=eng',
+  },
+  bom: {
+    label: 'Come, Follow Me (Book of Mormon 2024)',
+    href: 'https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-book-of-mormon-2024?lang=eng',
+  },
+  dc: {
+    label: 'Come, Follow Me (Doctrine and Covenants 2025)',
+    href: 'https://www.churchofjesuschrist.org/study/manual/come-follow-me-for-home-and-church-doctrine-and-covenants-2025?lang=eng',
+  },
+}
+
+export function buildChurchSearchUrl(
+  query: string,
+  facet?: 'manuals' | 'general-conference' | 'magazines',
+): string {
+  const params = new URLSearchParams({ lang: 'eng', query })
+  if (facet) params.set('facet', facet)
+  return `https://www.churchofjesuschrist.org/search?${params.toString()}`
+}
+
+export function buildFairSearchUrl(query: string): string {
+  const params = new URLSearchParams({ s: query })
+  return `https://www.fairlatterdaysaints.org/?${params.toString()}`
+}
+
+export function buildFairAnswersSearchUrl(query: string): string {
+  const params = new URLSearchParams({ search: query })
+  return `https://www.fairlatterdaysaints.org/answers/Special:Search?${params.toString()}`
+}
+
+/** WordPress site search on followhim.co */
+export function buildFollowHimSearchUrl(query: string): string {
+  const params = new URLSearchParams({ s: query })
+  return `https://followhim.co/?${params.toString()}`
+}
+
+/** 1/2 Samuel, Kings, and Chronicles share one BibleProject guide each. */
+const BIBLE_PROJECT_COMBINED: Record<string, string> = {
+  '1 samuel': 'books-of-samuel',
+  '2 samuel': 'books-of-samuel',
+  '1 kings': 'books-of-kings',
+  '2 kings': 'books-of-kings',
+  '1 chronicles': 'books-of-chronicles',
+  '2 chronicles': 'books-of-chronicles',
+}
+
+const BIBLE_PROJECT_SLUG_OVERRIDES: Record<string, string> = {
+  'song of solomon': 'book-of-song-of-songs',
+  'song of songs': 'book-of-song-of-songs',
+  psalm: 'book-of-psalms',
+  psalms: 'book-of-psalms',
+}
+
+/** Durable BibleProject book overview/guide page for a Bible book name. */
+export function buildBibleProjectGuideUrl(book: string): string {
+  const key = normalizeBookKey(book)
+  const combined = BIBLE_PROJECT_COMBINED[key]
+  if (combined) {
+    return `https://bibleproject.com/guides/${combined}/`
+  }
+  const override = BIBLE_PROJECT_SLUG_OVERRIDES[key]
+  if (override) {
+    return `https://bibleproject.com/guides/${override}/`
+  }
+  const slug = key.replace(/\s+/g, '-')
+  return `https://bibleproject.com/guides/book-of-${slug}/`
+}
+
 export function buildReferenceLinks(verse: Verse): ReferenceLink[] {
   const links: ReferenceLink[] = []
   const byuHref = buildByuCitationUrl(verse)
+  const refQuery = verse.reference
 
   links.push({
     label: 'BYU Citation Index',
@@ -159,8 +239,58 @@ export function buildReferenceLinks(verse: Verse): ReferenceLink[] {
     })
   }
 
+  links.push({
+    label: 'Church manuals mentioning this verse',
+    href: buildChurchSearchUrl(refQuery, 'manuals'),
+    description: 'Come, Follow Me and other manuals on ChurchofJesusChrist.org',
+  })
+
+  links.push({
+    label: 'General Conference mentioning this verse',
+    href: buildChurchSearchUrl(refQuery, 'general-conference'),
+    description: 'Talks that cite this passage',
+  })
+
+  links.push({
+    label: 'Magazines & Church content',
+    href: buildChurchSearchUrl(refQuery),
+    description: 'Broader Gospel Library search for this reference',
+  })
+
+  links.push({
+    label: 'FAIR Latter-day Saints',
+    href: buildFairSearchUrl(refQuery),
+    description: `Articles and study resources mentioning ${verse.reference}`,
+  })
+
+  links.push({
+    label: 'FAIR Answers wiki',
+    href: buildFairAnswersSearchUrl(refQuery),
+    description: 'Faithful Q&A and apologetic notes tied to this passage',
+  })
+
+  links.push({
+    label: 'followHIM podcast',
+    href: buildFollowHimSearchUrl(refQuery),
+    description: `Hank Smith & John Bytheway episodes mentioning ${verse.reference}`,
+  })
+
+  const cfmHome = CFM_MANUAL_HOME[verse.volume]
+  if (cfmHome) {
+    links.push({
+      label: cfmHome.label,
+      href: cfmHome.href,
+      description: 'Home study curriculum for this volume’s recent CFM year',
+    })
+  }
+
   if (verse.volume === 'bible') {
     const passage = encodeURIComponent(verse.reference)
+    links.push({
+      label: 'Bible Project',
+      href: buildBibleProjectGuideUrl(verse.book),
+      description: `Overview video and study guide for ${verse.book}`,
+    })
     links.push({
       label: 'Bible Gateway (KJV)',
       href: `https://www.biblegateway.com/passage/?search=${passage}&version=KJV`,

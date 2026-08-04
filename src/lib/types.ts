@@ -53,6 +53,8 @@ export interface PersistedState {
   markedVerseIds: string[]
   notes: Record<string, VerseNote>
   rotationIndex: number
+  /** When true, rotate only within this week's Come, Follow Me verse pool */
+  cfmMode: boolean
   stats: AppStats
 }
 
@@ -72,6 +74,7 @@ export function defaultPersistedState(): PersistedState {
     markedVerseIds: [],
     notes: {},
     rotationIndex: 0,
+    cfmMode: false,
     stats: emptyStats(),
   }
 }
