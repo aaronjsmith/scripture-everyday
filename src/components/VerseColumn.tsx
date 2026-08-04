@@ -1,5 +1,5 @@
 import { buildByuCitationUrl } from '../lib/links'
-import type { CfmLesson } from '../lib/cfm'
+import { formatCfmWeekLabel, type CfmLesson } from '../lib/cfm'
 import type { Verse } from '../lib/types'
 import { VOLUME_LABELS } from '../lib/types'
 
@@ -31,7 +31,9 @@ export function VerseColumn({ verse, cfmMode = false, cfmLesson = null }: Props)
           <p className="cfm-lesson-banner">
             <span className="cfm-lesson-label">This week</span>
             <span className="cfm-lesson-title">{cfmLesson.title}</span>
-            <span className="cfm-lesson-dates">{cfmLesson.dateDisplay}</span>
+            <span className="cfm-lesson-dates">
+              {formatCfmWeekLabel(cfmLesson)}
+            </span>
             {cfmLesson.href ? (
               <a
                 className="cfm-lesson-link"

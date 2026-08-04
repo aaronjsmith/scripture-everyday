@@ -1,6 +1,16 @@
 /**
  * Fetches Come, Follow Me lesson metadata and writes public/data/cfm-index.json
  * Used to link verses to Church.org weekly study outlines.
+ *
+ * Year selection:
+ * - CFM_YEAR env override, or
+ * - the Open Scripture curriculum year whose date ranges cover *today*
+ *   (calendar Dec often belongs to next year's manual, e.g. 2025-12-29 → 2026).
+ *
+ * Note: FAIR + followHIM scrapers are currently OT/2026-oriented. When the
+ * curriculum rolls to NT/BoM/D&C, core CFM week resolution still works via
+ * Open Scripture; weekly FAIR/followHIM hrefs may be sparse until those
+ * scrapers are pointed at the new manuals.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -17,6 +27,20 @@ const outFile = join(outDir, 'cfm-index.json')
 const CFM_API =
   'https://openscriptureapi.org/api/manuals/v1/lds/en/come-follow-me?limit=100'
 
+function toIsoDate(date = new Date()) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function lessonCoversIso(lesson, iso) {
+  const start = lesson.dateRange?.start ?? lesson._id
+  const end = lesson.dateRange?.end ?? start
+  if (!start || !end) return false
+  return iso >= start && iso <= end
+}
+
 async function fetchYear(year) {
   const url = `${CFM_API}&year=${year}`
   const res = await fetch(url)
@@ -27,17 +51,61 @@ async function fetchYear(year) {
   return Array.isArray(data.lessons) ? data.lessons : []
 }
 
+/**
+ * Pick the curriculum year that contains today's date.
+ * Tries calendar year, then +1 (late Dec → next manual), then -1.
+ */
+async function resolveCurriculumYear(today = new Date()) {
+  const override = Number(process.env.CFM_YEAR)
+  if (Number.isFinite(override) && override > 0) {
+    const raw = await fetchYear(override)
+    return { year: override, raw }
+  }
+
+  const calYear = today.getFullYear()
+  const iso = toIsoDate(today)
+  const candidates = [calYear, calYear + 1, calYear - 1]
+  /** @type {{ year: number, raw: unknown[] } | null} */
+  let fallback = null
+
+  for (const year of candidates) {
+    try {
+      const raw = await fetchYear(year)
+      if (!raw.length) continue
+      if (!fallback) fallback = { year, raw }
+      if (raw.some((lesson) => lessonCoversIso(lesson, iso))) {
+        return { year, raw }
+      }
+    } catch (err) {
+      console.warn(
+        `CFM year ${year} unavailable:`,
+        err instanceof Error ? err.message : err,
+      )
+    }
+  }
+
+  if (fallback) {
+    console.warn(
+      `No CFM lesson covers ${iso}; using year ${fallback.year} (${fallback.raw.length} lessons)`,
+    )
+    return fallback
+  }
+
+  throw new Error(`No Come, Follow Me lessons found near ${calYear}`)
+}
+
 function lessonHref(manualId, lessonNumber) {
   return `https://www.churchofjesuschrist.org/study/manual/${manualId}/${lessonNumber}?lang=eng`
 }
 
 async function main() {
-  const year = Number(process.env.CFM_YEAR) || new Date().getFullYear()
-  const raw = await fetchYear(year)
+  const { year, raw } = await resolveCurriculumYear()
 
   if (raw.length === 0) {
     throw new Error(`No Come, Follow Me lessons returned for ${year}`)
   }
+
+  console.log(`Using CFM curriculum year ${year} (${raw.length} lessons)`)
 
   let fairByWeek = new Map()
   try {
@@ -85,6 +153,10 @@ async function main() {
 
   const withFair = lessons.filter((l) => l.fairHref).length
   const withFollowHim = lessons.filter((l) => l.followHimHref).length
+  const todayIso = toIsoDate()
+  const current = lessons.find(
+    (l) => todayIso >= l.dateStart && todayIso <= l.dateEnd,
+  )
 
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -104,6 +176,13 @@ async function main() {
   console.log(
     `Wrote ${lessons.length} CFM lessons (${withFair} FAIR, ${withFollowHim} followHIM) → ${outFile}`,
   )
+  if (current) {
+    console.log(
+      `Current week (${todayIso}): ${current.title} · ${current.dateDisplay} · ${current.scriptureReferences.join(', ')}`,
+    )
+  } else {
+    console.warn(`No lesson in index covers today (${todayIso})`)
+  }
 }
 
 main().catch((err) => {

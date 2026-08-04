@@ -10,7 +10,7 @@
     "build:cfm": "node scripts/build-cfm-index.mjs",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build:cfm && npm run build && wrangler deploy",
     "dev:cf": "wrangler dev"
   },
   "engines": {

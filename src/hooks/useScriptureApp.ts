@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildCfmVersePool,
-  findCurrentLesson,
   loadCfmCurrentLesson,
   loadCfmLessons,
   parseCitationsFromText,
+  resolveCurrentCfmLesson,
   type CfmLesson,
   type CfmVerseRef,
 } from '../lib/cfm'
@@ -150,22 +150,25 @@ export function useScriptureApp() {
       const lessons = await loadCfmLessons()
       if (cancelled) return
 
-      const lesson = findCurrentLesson(lessons)
+      // Live /current is source of truth for "this week"; index supplies hrefs.
+      const currentPayload = await loadCfmCurrentLesson()
+      if (cancelled) return
+
+      const lesson = resolveCurrentCfmLesson(lessons, currentPayload)
       if (!lesson) {
         setCfmLesson(null)
         setCfmPool([])
         setCfmPoolReady(true)
-        setCfmStatus(lessons.length ? 'unavailable' : 'unavailable')
+        setCfmStatus('unavailable')
         return
       }
 
       let connected: CfmVerseRef[] = []
-      const currentPayload = await loadCfmCurrentLesson()
-      if (cancelled) return
       if (currentPayload?.contentText) {
         connected = parseCitationsFromText(currentPayload.contentText)
       }
 
+      // Pool is ONLY this week's primary blocks + citations from that lesson.
       const { pool } = buildCfmVersePool(verses, lesson, connected)
       setCfmLesson(lesson)
       setCfmPool(pool)

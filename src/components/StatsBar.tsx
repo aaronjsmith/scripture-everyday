@@ -1,6 +1,6 @@
 import type { AppStats, VolumeId } from '../lib/types'
 import { VOLUME_LABELS, VOLUME_ORDER } from '../lib/types'
-import type { CfmLesson } from '../lib/cfm'
+import { formatCfmWeekLabel, type CfmLesson } from '../lib/cfm'
 
 interface Props {
   stats: AppStats
@@ -45,7 +45,7 @@ export function StatsBar({
         : cfmStatus === 'empty'
           ? 'This week has no matching verses'
           : cfmLesson
-            ? `${cfmLesson.dateDisplay} · ${cfmPoolStats.marked}/${cfmPoolStats.total} in pool`
+            ? `${formatCfmWeekLabel(cfmLesson)} · ${cfmPoolStats.marked}/${cfmPoolStats.total} in pool`
             : null
 
   return (

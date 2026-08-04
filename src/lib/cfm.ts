@@ -33,6 +33,8 @@ export interface CfmCurrentPayload {
   scriptureReferences: string[]
   contentText: string
   href?: string
+  year?: number | null
+  manualId?: string | null
 }
 
 interface CfmIndexPayload {
@@ -248,6 +250,69 @@ export function findCurrentLesson(
   return null
 }
 
+/** Human-readable active week, including curriculum year. */
+export function formatCfmWeekLabel(lesson: CfmLesson): string {
+  const dates = lesson.dateDisplay?.trim()
+  if (lesson.year && dates) return `${lesson.year} · ${dates}`
+  if (dates) return dates
+  if (lesson.year) return String(lesson.year)
+  return ''
+}
+
+/**
+ * Prefer Open Scripture's live `/current` lesson (always this calendar week),
+ * merging static index metadata (Church.org / FAIR / followHIM hrefs).
+ * Falls back to date-range matching against the local index.
+ */
+export function resolveCurrentCfmLesson(
+  lessons: CfmLesson[],
+  apiCurrent: CfmCurrentPayload | null,
+  today: Date = new Date(),
+): CfmLesson | null {
+  if (apiCurrent?.dateStart) {
+    const fromIndex =
+      lessons.find(
+        (l) =>
+          l.id === apiCurrent.id ||
+          lessonStart(l) === apiCurrent.dateStart ||
+          (apiCurrent.dateStart >= lessonStart(l) &&
+            apiCurrent.dateStart <= lessonEnd(l, lessons)),
+      ) ?? null
+
+    if (fromIndex) {
+      return {
+        ...fromIndex,
+        title: apiCurrent.title || fromIndex.title,
+        dateDisplay: apiCurrent.dateDisplay || fromIndex.dateDisplay,
+        dateStart: apiCurrent.dateStart || fromIndex.dateStart,
+        dateEnd: apiCurrent.dateEnd || fromIndex.dateEnd,
+        scriptureReferences:
+          apiCurrent.scriptureReferences.length > 0
+            ? apiCurrent.scriptureReferences
+            : fromIndex.scriptureReferences,
+        year: apiCurrent.year ?? fromIndex.year,
+        manualId: apiCurrent.manualId || fromIndex.manualId,
+        href: fromIndex.href || apiCurrent.href || '',
+      }
+    }
+
+    return {
+      id: apiCurrent.id || apiCurrent.dateStart,
+      year: apiCurrent.year ?? today.getFullYear(),
+      manualId: apiCurrent.manualId ?? '',
+      lessonNumber: 0,
+      title: apiCurrent.title,
+      dateDisplay: apiCurrent.dateDisplay,
+      dateStart: apiCurrent.dateStart,
+      dateEnd: apiCurrent.dateEnd,
+      scriptureReferences: apiCurrent.scriptureReferences,
+      href: apiCurrent.href ?? '',
+    }
+  }
+
+  return findCurrentLesson(lessons, today)
+}
+
 /**
  * Parse chapter/verse citations that follow a book name, including chained
  * forms like "Esther 2:21–23; 3:10–14" and bare chapters "Esther 3; 5:9–14".
@@ -413,6 +478,8 @@ function normalizeCurrentPayload(
         : [],
       contentText: data.contentText,
       href: typeof data.href === 'string' ? data.href : undefined,
+      year: typeof data.year === 'number' ? data.year : null,
+      manualId: typeof data.manualId === 'string' ? data.manualId : null,
     }
   }
 
@@ -446,6 +513,8 @@ function normalizeCurrentPayload(
         )
       : [],
     contentText: text,
+    year: typeof data.year === 'number' ? data.year : null,
+    manualId: typeof data.manualId === 'string' ? data.manualId : null,
   }
 }
 
