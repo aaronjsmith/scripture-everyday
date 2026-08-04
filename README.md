@@ -35,7 +35,7 @@ Connect this repo in the dashboard. Build settings:
 | Build output directory | `dist` |
 | Root directory | `/` |
 
-Set `NODE_VERSION=20` if the dashboard asks for a Node version.
+Set `NODE_VERSION=22` if the dashboard asks for a Node version (Wrangler 4 requires it). An `.nvmrc` is included so Git builds pick Node 22 automatically.
 
 ## Notes
 
