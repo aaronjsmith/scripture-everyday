@@ -14,28 +14,19 @@ npm run dev
 
 ## Deploy (Cloudflare Pages)
 
-Minimal setup: `wrangler.toml` points at `dist` and names the project `scriptday`.
-
-```bash
-npm run cf:login   # once
-npm run deploy
-```
-
-Then in the Cloudflare dashboard: **Workers & Pages → scriptday → Custom domains → Add** `scriptday.ensign.quest`.
-
-If `ensign.quest` is already on the same Cloudflare account, the DNS record is created for you.
-
-### Optional: Git-connected Pages
-
-Connect this repo in the dashboard. Build settings:
+Static Vite app — no Wrangler required. Connect the repo in **Workers & Pages → Create → Pages → Connect to Git**, then use:
 
 | Setting | Value |
 | --- | --- |
+| Framework preset | Vite |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
-| Root directory | `/` |
 
-Set `NODE_VERSION=22` if the dashboard asks for a Node version (Wrangler 4 requires it). An `.nvmrc` is included so Git builds pick Node 22 automatically.
+Leave **Deploy command** empty (Pages publishes `dist` after the build).
+
+Add the custom domain `scriptday.ensign.quest` under the project’s **Custom domains** tab.
+
+If an older setup still runs `npx wrangler deploy`, clear that deploy command and remove any `wrangler.toml` expectation — this repo is assets-only.
 
 ## Notes
 

@@ -1,4 +1,0 @@
-# Cloudflare Pages — https://scriptday.ensign.quest
-name = "scriptday"
-compatibility_date = "2026-08-04"
-pages_build_output_dir = "dist"
