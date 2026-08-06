@@ -1,4 +1,5 @@
 import type { PersistedState, VerseNote, VolumeId } from './types'
+import { normalizeEnabledVolumes } from './types'
 
 export type AuthProvider = 'google' | 'microsoft'
 
@@ -105,6 +106,9 @@ export function mergeProgress(
     cfmMode: local.cfmMode || remote.cfmMode === true,
     verseOrder: local.verseOrder || remote.verseOrder === true,
     verseContext: local.verseContext || remote.verseContext === true,
+    enabledVolumes: normalizeEnabledVolumes(
+      local.enabledVolumes?.length ? local.enabledVolumes : remote.enabledVolumes,
+    ),
     stats: recomputeStats(markedVerseIds, notes, byVolume, lastShownAt),
   }
 }

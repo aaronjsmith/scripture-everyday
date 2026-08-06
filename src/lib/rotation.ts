@@ -1,12 +1,12 @@
 import type { Verse, VolumeId } from './types'
-import { VOLUME_ORDER } from './types'
+import { VOLUME_ORDER, normalizeEnabledVolumes } from './types'
 
 export function pickNextVerse(
   verses: Verse[],
   /** Verse IDs to skip (marked and/or already noted). */
   skipIds: Set<string>,
   rotationIndex: number,
-  options: { verseOrder?: boolean } = {},
+  options: { verseOrder?: boolean; volumes?: VolumeId[] } = {},
 ): { verse: Verse; nextRotationIndex: number } | null {
   if (!verses.length) return null
 
@@ -14,8 +14,10 @@ export function pickNextVerse(
     return pickNextVerseInOrder(verses, skipIds, rotationIndex)
   }
 
-  for (let offset = 0; offset < VOLUME_ORDER.length; offset++) {
-    const volume = VOLUME_ORDER[(rotationIndex + offset) % VOLUME_ORDER.length]
+  const volumes = normalizeEnabledVolumes(options.volumes ?? VOLUME_ORDER)
+
+  for (let offset = 0; offset < volumes.length; offset++) {
+    const volume = volumes[(rotationIndex + offset) % volumes.length]
     const unread = verses.filter(
       (v) => v.volume === volume && !skipIds.has(v.id),
     )
@@ -24,19 +26,19 @@ export function pickNextVerse(
       const verse = unread[Math.floor(Math.random() * unread.length)]
       return {
         verse,
-        nextRotationIndex: (rotationIndex + offset + 1) % VOLUME_ORDER.length,
+        nextRotationIndex: (rotationIndex + offset + 1) % volumes.length,
       }
     }
   }
 
   // All skipped — reset cycle with a random verse from the next volume slot
-  const volume = VOLUME_ORDER[rotationIndex % VOLUME_ORDER.length]
+  const volume = volumes[rotationIndex % volumes.length]
   const pool = verses.filter((v) => v.volume === volume)
   const fallbackPool = pool.length ? pool : verses
   const verse = fallbackPool[Math.floor(Math.random() * fallbackPool.length)]
   return {
     verse,
-    nextRotationIndex: (rotationIndex + 1) % VOLUME_ORDER.length,
+    nextRotationIndex: (rotationIndex + 1) % volumes.length,
   }
 }
 

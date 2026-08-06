@@ -10,12 +10,14 @@ interface Props {
   cfmMode: boolean
   verseOrder: boolean
   verseContext: boolean
+  enabledVolumes: VolumeId[]
   cfmLesson: CfmLesson | null
   cfmStatus: 'idle' | 'loading' | 'ready' | 'empty' | 'unavailable'
   cfmPoolStats: { total: number; marked: number }
   onToggleCfmMode: (enabled: boolean) => void
   onToggleVerseOrder: (enabled: boolean) => void
   onToggleVerseContext: (enabled: boolean) => void
+  onToggleVolume: (volume: VolumeId, enabled: boolean) => void
   onNext: () => void
   onExportJson: () => void
   onExportMarkdown: () => void
@@ -32,12 +34,14 @@ export function StatsBar({
   cfmMode,
   verseOrder,
   verseContext,
+  enabledVolumes,
   cfmLesson,
   cfmStatus,
   cfmPoolStats,
   onToggleCfmMode,
   onToggleVerseOrder,
   onToggleVerseContext,
+  onToggleVolume,
   onNext,
   onExportJson,
   onExportMarkdown,
@@ -45,6 +49,9 @@ export function StatsBar({
   onReset,
   onViewMarked,
 }: Props) {
+  const enabledSet = new Set(enabledVolumes)
+  const onlyOneEnabled = enabledVolumes.length <= 1
+
   const cfmHint =
     cfmStatus === 'loading'
       ? 'Loading this week’s lesson…'
@@ -89,21 +96,36 @@ export function StatsBar({
       </div>
 
       <div className="progress-list">
+        <p className="progress-list-label">In rotation</p>
         {VOLUME_ORDER.map((volume) => {
           const { marked, total } = progress[volume]
           const pct = total ? Math.round((marked / total) * 100) : 0
+          const inRotation = enabledSet.has(volume)
           return (
-            <div key={volume} className="progress-row">
-              <div className="progress-meta">
-                <span>{VOLUME_LABELS[volume]}</span>
-                <span>
-                  {marked}/{total} ({pct}%)
-                </span>
+            <label
+              key={volume}
+              className={`progress-row${inRotation ? ' is-on' : ' is-off'}`}
+            >
+              <input
+                type="checkbox"
+                checked={inRotation}
+                disabled={inRotation && onlyOneEnabled}
+                onChange={(e) => onToggleVolume(volume, e.target.checked)}
+                aria-label={`Include ${VOLUME_LABELS[volume]} in rotation`}
+              />
+              <span className="progress-toggle" aria-hidden />
+              <div className="progress-body">
+                <div className="progress-meta">
+                  <span>{VOLUME_LABELS[volume]}</span>
+                  <span>
+                    {marked}/{total} ({pct}%)
+                  </span>
+                </div>
+                <div className="progress-track" aria-hidden>
+                  <div className="progress-fill" style={{ width: `${pct}%` }} />
+                </div>
               </div>
-              <div className="progress-track" aria-hidden>
-                <div className="progress-fill" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
+            </label>
           )
         })}
       </div>

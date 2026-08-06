@@ -5,13 +5,14 @@ import { NotesColumn } from './components/NotesColumn'
 import { StatsBar } from './components/StatsBar'
 import { MarkedHistory } from './components/MarkedHistory'
 import { useScriptureApp } from './hooks/useScriptureApp'
-import { VOLUME_LABELS, VOLUME_ORDER } from './lib/types'
+import { VOLUME_LABELS, normalizeEnabledVolumes } from './lib/types'
 import './App.css'
 
 function App() {
   const app = useScriptureApp()
+  const rotationVolumes = normalizeEnabledVolumes(app.state.enabledVolumes)
   const nextVolume =
-    VOLUME_LABELS[VOLUME_ORDER[app.state.rotationIndex % VOLUME_ORDER.length]]
+    VOLUME_LABELS[rotationVolumes[app.state.rotationIndex % rotationVolumes.length]]
 
   if (app.loading) {
     return (
@@ -116,12 +117,14 @@ function App() {
         cfmMode={app.state.cfmMode}
         verseOrder={app.state.verseOrder}
         verseContext={app.state.verseContext}
+        enabledVolumes={app.state.enabledVolumes}
         cfmLesson={app.cfmLesson}
         cfmStatus={app.cfmStatus}
         cfmPoolStats={app.cfmPoolStats}
         onToggleCfmMode={app.setCfmMode}
         onToggleVerseOrder={app.setVerseOrder}
         onToggleVerseContext={app.setVerseContext}
+        onToggleVolume={app.setVolumeEnabled}
         onNext={app.advance}
         onExportJson={app.exportJson}
         onExportMarkdown={app.exportMarkdown}

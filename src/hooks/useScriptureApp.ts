@@ -33,15 +33,11 @@ import type {
   VersesPayload,
   VolumeId,
 } from '../lib/types'
-import { VOLUME_ORDER, emptyStats } from '../lib/types'
+import { VOLUME_ORDER, emptyStats, normalizeEnabledVolumes } from '../lib/types'
 
-/** IDs already visited (marked) or with a saved note — skip when picking. */
+/** Verses with a saved note are done — skip when picking. Opening alone does not count. */
 function skipVerseIds(state: PersistedState): Set<string> {
-  const ids = new Set(state.markedVerseIds)
-  for (const id of Object.keys(state.notes)) {
-    ids.add(id)
-  }
-  return ids
+  return new Set(Object.keys(state.notes))
 }
 
 function applyNoteToState(
@@ -77,6 +73,27 @@ function applyNoteToState(
   }
 
   return { ...prev, notes, stats }
+}
+
+/** Mark a verse only once it has a note (not merely from opening / Next). */
+function markVerseIfNoted(state: PersistedState, verse: Verse): PersistedState {
+  if (!state.notes[verse.id] || state.markedVerseIds.includes(verse.id)) {
+    return state
+  }
+
+  const byVolume = { ...state.stats.byVolume }
+  byVolume[verse.volume] = (byVolume[verse.volume] ?? 0) + 1
+
+  return {
+    ...state,
+    markedVerseIds: [...state.markedVerseIds, verse.id],
+    stats: {
+      ...state.stats,
+      totalShown: state.stats.totalShown + 1,
+      byVolume,
+      lastShownAt: new Date().toISOString(),
+    },
+  }
 }
 
 export function useScriptureApp() {
@@ -125,7 +142,11 @@ export function useScriptureApp() {
     [state.markedVerseIds],
   )
 
-  const activePool = state.cfmMode && cfmPool.length > 0 ? cfmPool : verses
+  const activePool = useMemo(() => {
+    const base = state.cfmMode && cfmPool.length > 0 ? cfmPool : verses
+    const enabled = new Set(normalizeEnabledVolumes(state.enabledVolumes))
+    return base.filter((v) => enabled.has(v.volume))
+  }, [state.cfmMode, state.enabledVolumes, cfmPool, verses])
 
   useEffect(() => {
     let cancelled = false
@@ -270,15 +291,25 @@ export function useScriptureApp() {
       verseList,
       skipVerseIds(fromState),
       fromState.rotationIndex,
-      { verseOrder: fromState.verseOrder },
+      {
+        verseOrder: fromState.verseOrder,
+        volumes: fromState.enabledVolumes,
+      },
     )
     if (!picked) return
     showVerse(picked.verse, picked.nextRotationIndex)
   }
 
-  function poolForMode(cfmMode: boolean): Verse[] {
-    if (cfmMode && cfmPoolRef.current.length > 0) return cfmPoolRef.current
-    return versesRef.current
+  function poolForMode(
+    cfmMode: boolean,
+    enabledVolumes: VolumeId[] = stateRef.current.enabledVolumes,
+  ): Verse[] {
+    const base =
+      cfmMode && cfmPoolRef.current.length > 0
+        ? cfmPoolRef.current
+        : versesRef.current
+    const enabled = new Set(normalizeEnabledVolumes(enabledVolumes))
+    return base.filter((v) => enabled.has(v.volume))
   }
 
   useEffect(() => {
@@ -312,29 +343,22 @@ export function useScriptureApp() {
         noteDraftRef.current,
         tagDraftRef.current,
       )
-
-      if (!working.markedVerseIds.includes(verse.id)) {
-        const byVolume = { ...working.stats.byVolume }
-        byVolume[verse.volume] = (byVolume[verse.volume] ?? 0) + 1
-        working = {
-          ...working,
-          markedVerseIds: [...working.markedVerseIds, verse.id],
-          stats: {
-            ...working.stats,
-            totalShown: working.stats.totalShown + 1,
-            byVolume,
-            lastShownAt: new Date().toISOString(),
-          },
-        }
-      }
+      working = markVerseIfNoted(working, verse)
     }
 
-    const pool = poolForMode(working.cfmMode)
+    const pool = poolForMode(working.cfmMode, working.enabledVolumes)
+    const skip = skipVerseIds(working)
+    // Always leave the current verse so Next moves on even without a note.
+    if (verse) skip.add(verse.id)
+
     const picked = pickNextVerse(
       pool,
-      skipVerseIds(working),
+      skip,
       working.rotationIndex,
-      { verseOrder: working.verseOrder },
+      {
+        verseOrder: working.verseOrder,
+        volumes: working.enabledVolumes,
+      },
     )
     if (!picked) {
       setState(working)
@@ -363,7 +387,7 @@ export function useScriptureApp() {
       return
     }
 
-    pickAndShow(next, poolForMode(enabled))
+    pickAndShow(next, poolForMode(enabled, next.enabledVolumes))
   }
 
   function setVerseOrder(enabled: boolean) {
@@ -372,11 +396,36 @@ export function useScriptureApp() {
       verseOrder: enabled,
     }
     setState(next)
-    pickAndShow(next, poolForMode(next.cfmMode))
+    pickAndShow(next, poolForMode(next.cfmMode, next.enabledVolumes))
   }
 
   function setVerseContext(enabled: boolean) {
     setState((prev) => ({ ...prev, verseContext: enabled }))
+  }
+
+  function setVolumeEnabled(volume: VolumeId, enabled: boolean) {
+    const current = normalizeEnabledVolumes(stateRef.current.enabledVolumes)
+    let nextVolumes: VolumeId[]
+    if (enabled) {
+      nextVolumes = VOLUME_ORDER.filter(
+        (id) => current.includes(id) || id === volume,
+      )
+    } else {
+      nextVolumes = current.filter((id) => id !== volume)
+      if (!nextVolumes.length) return
+    }
+
+    const next: PersistedState = {
+      ...stateRef.current,
+      enabledVolumes: nextVolumes,
+      rotationIndex: 0,
+    }
+    setState(next)
+
+    const cur = currentRef.current
+    if (!cur || !nextVolumes.includes(cur.volume)) {
+      pickAndShow(next, poolForMode(next.cfmMode, nextVolumes))
+    }
   }
 
   function openVerse(verseId: string) {
@@ -392,7 +441,15 @@ export function useScriptureApp() {
     const verse = currentRef.current
     if (!verse) return
     setState((prev) =>
-      applyNoteToState(prev, verse, noteDraftRef.current, tagDraftRef.current),
+      markVerseIfNoted(
+        applyNoteToState(
+          prev,
+          verse,
+          noteDraftRef.current,
+          tagDraftRef.current,
+        ),
+        verse,
+      ),
     )
     setSaveFlash(true)
     window.setTimeout(() => setSaveFlash(false), 1200)
@@ -428,7 +485,7 @@ export function useScriptureApp() {
       },
     }
     setState(next)
-    pickAndShow(next, poolForMode(next.cfmMode))
+    pickAndShow(next, poolForMode(next.cfmMode, next.enabledVolumes))
   }
 
   async function disconnectCloud() {
@@ -498,6 +555,7 @@ export function useScriptureApp() {
     setCfmMode,
     setVerseOrder,
     setVerseContext,
+    setVolumeEnabled,
     activePoolSize: activePool.length,
     exportJson: () => exportNotesJson(state.notes),
     exportMarkdown: () => exportNotesMarkdown(state.notes),

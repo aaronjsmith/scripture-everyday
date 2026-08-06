@@ -9,6 +9,17 @@ export const VOLUME_LABELS: Record<VolumeId, string> = {
   dc: 'Doctrine and Covenants',
 }
 
+/** Keep known volumes in canonical order; fall back to all if empty/invalid. */
+export function normalizeEnabledVolumes(ids: unknown): VolumeId[] {
+  const allowed = new Set<string>(VOLUME_ORDER)
+  const incoming = Array.isArray(ids)
+    ? ids.filter((id): id is VolumeId => typeof id === 'string' && allowed.has(id))
+    : []
+  const unique = new Set(incoming)
+  const ordered = VOLUME_ORDER.filter((id) => unique.has(id))
+  return ordered.length ? ordered : [...VOLUME_ORDER]
+}
+
 export interface Verse {
   id: string
   volume: VolumeId
@@ -59,6 +70,8 @@ export interface PersistedState {
   verseOrder: boolean
   /** When true, show the verse before and after the current verse */
   verseContext: boolean
+  /** Volumes included in random / ordered rotation (at least one) */
+  enabledVolumes: VolumeId[]
   stats: AppStats
 }
 
@@ -81,6 +94,7 @@ export function defaultPersistedState(): PersistedState {
     cfmMode: false,
     verseOrder: false,
     verseContext: false,
+    enabledVolumes: [...VOLUME_ORDER],
     stats: emptyStats(),
   }
 }

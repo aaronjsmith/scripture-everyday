@@ -767,6 +767,72 @@ textarea {
   gap: 0.55rem;
 }
 
+.progress-list-label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.progress-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0.2rem 0.15rem;
+  transition: opacity 0.2s ease;
+}
+
+.progress-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.progress-toggle {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.15rem;
+  border-radius: 3px;
+  border: 1.5px solid rgba(243, 224, 200, 0.55);
+  background: transparent;
+  position: relative;
+}
+
+.progress-row.is-on .progress-toggle {
+  background: #f3e0c8;
+  border-color: #f3e0c8;
+}
+
+.progress-row.is-on .progress-toggle::after {
+  content: '';
+  position: absolute;
+  left: 0.22rem;
+  top: 0.05rem;
+  width: 0.28rem;
+  height: 0.5rem;
+  border: solid var(--moss-deep);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.progress-row.is-off {
+  opacity: 0.45;
+}
+
+.progress-row:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.progress-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .progress-meta {
   display: flex;
   justify-content: space-between;

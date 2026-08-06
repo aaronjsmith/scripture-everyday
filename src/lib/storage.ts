@@ -1,5 +1,9 @@
 import type { PersistedState, VerseNote, VolumeId } from './types'
-import { defaultPersistedState, emptyStats } from './types'
+import {
+  defaultPersistedState,
+  emptyStats,
+  normalizeEnabledVolumes,
+} from './types'
 
 const STORAGE_KEY = 'scriptday:v1'
 const LEGACY_STORAGE_KEY = 'scripture-everyday:v1'
@@ -95,6 +99,7 @@ function sanitizeState(raw: unknown): PersistedState {
     cfmMode: raw.cfmMode === true,
     verseOrder: raw.verseOrder === true,
     verseContext: raw.verseContext === true,
+    enabledVolumes: normalizeEnabledVolumes(raw.enabledVolumes),
     stats,
   }
 }
