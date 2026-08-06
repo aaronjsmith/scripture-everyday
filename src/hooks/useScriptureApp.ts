@@ -440,17 +440,11 @@ export function useScriptureApp() {
   function saveNote() {
     const verse = currentRef.current
     if (!verse) return
-    setState((prev) =>
-      markVerseIfNoted(
-        applyNoteToState(
-          prev,
-          verse,
-          noteDraftRef.current,
-          tagDraftRef.current,
-        ),
-        verse,
-      ),
-    )
+    const hasContent =
+      noteDraftRef.current.trim().length > 0 || tagDraftRef.current.length > 0
+    if (!hasContent) return
+
+    advance()
     setSaveFlash(true)
     window.setTimeout(() => setSaveFlash(false), 1200)
   }
