@@ -3,20 +3,21 @@ import { VOLUME_ORDER } from './types'
 
 export function pickNextVerse(
   verses: Verse[],
-  markedIds: Set<string>,
+  /** Verse IDs to skip (marked and/or already noted). */
+  skipIds: Set<string>,
   rotationIndex: number,
   options: { verseOrder?: boolean } = {},
 ): { verse: Verse; nextRotationIndex: number } | null {
   if (!verses.length) return null
 
   if (options.verseOrder) {
-    return pickNextVerseInOrder(verses, markedIds, rotationIndex)
+    return pickNextVerseInOrder(verses, skipIds, rotationIndex)
   }
 
   for (let offset = 0; offset < VOLUME_ORDER.length; offset++) {
     const volume = VOLUME_ORDER[(rotationIndex + offset) % VOLUME_ORDER.length]
     const unread = verses.filter(
-      (v) => v.volume === volume && !markedIds.has(v.id),
+      (v) => v.volume === volume && !skipIds.has(v.id),
     )
 
     if (unread.length > 0) {
@@ -28,7 +29,7 @@ export function pickNextVerse(
     }
   }
 
-  // All marked — reset cycle with a random verse from the next volume slot
+  // All skipped — reset cycle with a random verse from the next volume slot
   const volume = VOLUME_ORDER[rotationIndex % VOLUME_ORDER.length]
   const pool = verses.filter((v) => v.volume === volume)
   const fallbackPool = pool.length ? pool : verses
@@ -39,18 +40,18 @@ export function pickNextVerse(
   }
 }
 
-/** Next unmarked verse in array order (corpus / CFM pool order). */
+/** Next unmarked / unnoted verse in array order (corpus / CFM pool order). */
 export function pickNextVerseInOrder(
   verses: Verse[],
-  markedIds: Set<string>,
+  skipIds: Set<string>,
   rotationIndex: number,
 ): { verse: Verse; nextRotationIndex: number } {
-  const unread = verses.find((v) => !markedIds.has(v.id))
+  const unread = verses.find((v) => !skipIds.has(v.id))
   if (unread) {
     return { verse: unread, nextRotationIndex: rotationIndex }
   }
 
-  // All marked — restart at the beginning of the pool
+  // All skipped — restart at the beginning of the pool
   return { verse: verses[0], nextRotationIndex: rotationIndex }
 }
 

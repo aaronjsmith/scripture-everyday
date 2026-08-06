@@ -35,6 +35,15 @@ import type {
 } from '../lib/types'
 import { VOLUME_ORDER, emptyStats } from '../lib/types'
 
+/** IDs already visited (marked) or with a saved note — skip when picking. */
+function skipVerseIds(state: PersistedState): Set<string> {
+  const ids = new Set(state.markedVerseIds)
+  for (const id of Object.keys(state.notes)) {
+    ids.add(id)
+  }
+  return ids
+}
+
 function applyNoteToState(
   prev: PersistedState,
   verse: Verse,
@@ -259,7 +268,7 @@ export function useScriptureApp() {
   function pickAndShow(fromState: PersistedState, verseList: Verse[]) {
     const picked = pickNextVerse(
       verseList,
-      new Set(fromState.markedVerseIds),
+      skipVerseIds(fromState),
       fromState.rotationIndex,
       { verseOrder: fromState.verseOrder },
     )
@@ -323,7 +332,7 @@ export function useScriptureApp() {
     const pool = poolForMode(working.cfmMode)
     const picked = pickNextVerse(
       pool,
-      new Set(working.markedVerseIds),
+      skipVerseIds(working),
       working.rotationIndex,
       { verseOrder: working.verseOrder },
     )
