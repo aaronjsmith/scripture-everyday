@@ -35,6 +35,7 @@ export function ReferencesColumn({ verse }: Props) {
         <h2 id="refs-heading">References</h2>
       </header>
 
+      <div className="refs-scroll">
       {cfmStatus === 'loading' ? (
         <p className="refs-status">Looking up Come, Follow Me…</p>
       ) : null}
@@ -95,6 +96,7 @@ export function ReferencesColumn({ verse }: Props) {
           </li>
         ))}
       </ul>
+      </div>
     </section>
   )
 }

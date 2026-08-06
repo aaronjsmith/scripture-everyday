@@ -580,6 +580,12 @@ textarea {
   color: var(--accent);
 }
 
+.refs-scroll {
+  max-height: 11rem;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
 .cfm-block {
   margin-bottom: 1.15rem;
 }
